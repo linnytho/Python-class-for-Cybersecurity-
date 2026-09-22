@@ -1,2 +1,2 @@
-# PythonforCybersecurity
-Python for cybersecurity repo
+# Python-class-for-Cybersecurity
+Edit by Linny Tho
