@@ -2,3 +2,6 @@ Milk
 Bread
 Bananas
 Eggs
+chocolate 
+popcorn
+bicycle 
