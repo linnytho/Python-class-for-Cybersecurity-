@@ -9,3 +9,7 @@ print("Hello World")
 user_name = input("What is your name?")
 # say hello to user
 print("Hello" + user_name)
+
+#Print out afffirmation "Today is going to be a great day"
+print("Today is going to be a great day!")
+
