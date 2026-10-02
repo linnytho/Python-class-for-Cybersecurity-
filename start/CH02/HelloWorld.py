@@ -31,5 +31,5 @@ print ("Hello %s" % user_name)
 # Joining text
 print("".join(["Hello", user_name]))
 
- 
-
+age = int (input ("What is you age?"))
+print ("In two your age will be", age + 2, "years old")
