@@ -1,67 +1,122 @@
-#!/usr/bin/env python3
-# Script that performs a dictionary attack against known password hashes
-# Needs a dictionary file, suggested to use https://github.com/danielmiessler/SecLists/tree/master/Passwords/Common-Credentials
-# By 
 
-# import
+import os
 from passlib.hash import sha512_crypt
-import os 
-import sys
 
-# Load dictionary function 
-def load_dictionary(file_name):
-    
-
-    # get current dirrectory 
-    script_path = os.path.abspath(__file__)
-    script_dir = os.path.dirname(script_path)
-
-    # Build file path 
-    file_path = os.path.join(script_dir, file_name)
-
-    # Open file for waiting 
-    f = open(file_path, "r")
-
-    # read content 
-    contents = f.readlines()
-    return(contents)
-# Create hash function
-def create_hash(password, salt):
-    hashed_pass = sha512_crypt.using(rounds=5000).hash(password, salt=salt)
-    return hashed_pass
-
-# Get input from user 
+# Find the folder containing this Python script
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-# Separate pieces
-script_dir = os.path.dirname(__file__)
-shadow_path = os.path.join(script_dir, "shadow")
-with open(shadow_path, "r") as shadow_file:
-    for shadow_line in shadow_file:
-        shadow_line = shadow_line.strip()
-        if not shadow_line or ":" not in shadow_line:
-            continue
-        shadow_parts = shadow_line.split(":")
-        user_name = (shadow_parts[0])
-        user_hash = (shadow_parts[1])
-        if "$" not in user_hash:
-            continue
-        user_salt = user_hash.split("$")[2]
+def load_dictionary(filename):
+    file_path = os.path.join(script_dir, filename)
 
-# Load dictionary 
-password_guesses = load_dictionary("top10000000.txt")
-# For each lines/guess
-for password_guess in password_guesses:
-    # Hash guess 
+    if not os.path.isfile(file_path):
+        print(f"File not found: {filename}")
+        return 0
 
-    hashed_guess = create_hash(password_guess.strip(), user_salt)
-    # COmpare hash to guess
-    if user_hash  == hashed_guess:
-        # Print guess
-        print(user_name, password_guess.strip())
-        #quit 
-        sys.exit()
+    count = 0
+
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
+        for line in file:
+            if line.strip():
+                count += 1
+
+    return count
 
 
-# print not found 
-print("Not found")
+def load_shadow():
+    file_path = os.path.join(script_dir, "shadow")
+    accounts = []
+
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError("shadow file not found.")
+
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as file:
+        for line in file:
+            parts = line.strip().split(":")
+
+            if len(parts) < 2:
+                continue
+
+            username = parts[0]
+            password_hash = parts[1]
+
+            if password_hash.startswith("$6$"):
+                accounts.append({
+                    "username": username,
+                    "hash": password_hash
+                })
+
+    return accounts
+
+
+def validate_hash(password_hash):
+    try:
+        sha512_crypt.from_string(password_hash)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
+def test_hash():
+    print("\n========== SHA-512 TEST ==========")
+
+    test_password = "example123"
+    generated_hash = sha512_crypt.hash(test_password)
+
+    if sha512_crypt.verify(test_password, generated_hash):
+        print("PASS: Correct password verified.")
+    else:
+        print("FAIL: Correct password rejected.")
+
+    if not sha512_crypt.verify("wrongpassword", generated_hash):
+        print("PASS: Incorrect password rejected.")
+    else:
+        print("FAIL: Incorrect password accepted.")
+
+
+def main():
+    print("========== SHADOW FILE ==========")
+
+    accounts = load_shadow()
+    print(f"SHA-512 accounts found: {len(accounts)}")
+
+    valid = 0
+    invalid = 0
+
+    for account in accounts:
+        if validate_hash(account["hash"]):
+            valid += 1
+            status = "Valid"
+        else:
+            invalid += 1
+            status = "Invalid"
+
+        print(f"{account['username']}: {status}")
+
+    print("\n========== HASH SUMMARY ==========")
+    print(f"Valid hashes: {valid}")
+    print(f"Invalid hashes: {invalid}")
+
+    print("\n========== DICTIONARY FILES ==========")
+
+    dictionary_files = [
+        "top10.txt",
+        "top100.txt",
+        "top1000.txt",
+        "top10000000.txt"
+    ]
+
+    for filename in dictionary_files:
+        count = load_dictionary(filename)
+        print(f"{filename}: {count:,} entries")
+
+    test_hash()
+
+    print("\n========== PROGRAM FINISHED ==========")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
